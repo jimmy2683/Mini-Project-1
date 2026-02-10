@@ -47,14 +47,17 @@ On **Server 1**, start nodes 1-5:
 On **Server 2**, start nodes 6-10:
 ```bash
 ./shard-server -id 6 -config cluster.json &
-...
+./shard-server -id 7 -config cluster.json &
+./shard-server -id 8 -config cluster.json &
+./shard-server -id 9 -config cluster.json &
 ./shard-server -id 10 -config cluster.json &
 ```
 
 On **Server 3**, start nodes 11-14:
 ```bash
 ./shard-server -id 11 -config cluster.json &
-...
+./shard-server -id 12 -config cluster.json &
+./shard-server -id 13 -config cluster.json &
 ./shard-server -id 14 -config cluster.json &
 ```
 

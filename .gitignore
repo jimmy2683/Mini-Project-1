@@ -25,3 +25,5 @@ TESTS*.xml
 .tox/
 .vagrant/
 .vscode
+cluster.json
+shard-server

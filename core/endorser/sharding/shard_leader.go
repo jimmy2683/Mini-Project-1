@@ -88,8 +88,8 @@ func NewShardLeader(config ShardConfig, batchTimeout time.Duration, maxBatchSize
 
 	c := &raft.Config{
 		ID:              config.ReplicaID,
-		ElectionTick:    10,
-		HeartbeatTick:   1,
+		ElectionTick:    50, // Increase to 50 * 100ms = 5 seconds
+		HeartbeatTick:   5,  // Increase to 5 * 100ms = 0.5 seconds
 		Storage:         storage,
 		MaxSizePerMsg:   1024 * 1024,
 		MaxInflightMsgs: 256,
