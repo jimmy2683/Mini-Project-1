@@ -1,41 +1,51 @@
-# End-to-End Distributed Experiment Guide
+# Final Distributed Experiment Guide
 
-This guide explains how to deploy and run the Sharded Raft Experiment across 3 servers using the provided deployment scripts.
+This guide explains how to deploy and run the Sharded Raft Experiment on 3 machines (e.g., 2 Laptops + 1 Server).
 
-## 1. Build the Server Binary
-On your development machine, build the enhanced shard server:
+> [!IMPORTANT]
+> **Network Connectivity Requirement**  
+> Before starting, ensure all 3 machines can reach each other.  
+> Run `ping <Machine_IP>` from each machine to the others.  
+> If you see `Time to live exceeded` or `Destination Host Unreachable`, **you cannot proceed**.  
+> **Solution:** Connect all devices to the same Wi-Fi network or Mobile Hotspot. 
+
+## 1. Prerequisites
+- **Go 1.19+** on all machines.
+- **Network Access:** All machines must be on the same subnet (e.g., `192.168.1.x`) or have proper routing.
+- **Ports 7001-7015** must be open (check firewalls).
+
+## 2. Build the Binaries
+On your development machine, compile the server and experiment runner:
 
 ```bash
+# Build the Shard Server node
 go build -o shard-server ./cmd/shard-server
+
+# Build the Experiment Runner
+go build -o experiment ./cmd/experiment
 ```
 
-## 2. Generate Cluster Configuration
-Use the Python script to generate the `cluster.json` topology file.
+## 3. Generate Configuration
+Run the helper script to create `cluster.json`:
 
 ```bash
 python3 deploy/generate_config.py
 ```
+- Enter the IP addresses for Server 1, Server 2, and Server 3 when prompted.
+- This creates `cluster.json` with unique ports for each node.
 
-*   **Prompt 1**: Enter IP for Server 1
-*   **Prompt 2**: Enter IP for Server 2
-*   **Prompt 3**: Enter IP for Server 3
+## 4. Distribute Files
+Copy `shard-server`, `experiment`, and `cluster.json` to **ALL 3 machines**.
+You can use `scp` (replace user/ip with yours):
 
-This will create `cluster.json` containing the peer mappings for 15 nodes.
+```bash
+scp shard-server experiment cluster.json user@192.168.x.x:~/
+```
 
-## 3. Deployment
-Copy the following files to **all 3 servers**:
-1.  `shard-server` (The binary you built)
-2.  `cluster.json` (The config you generated)
+## 5. Run the Nodes
+SSH into each machine and run the corresponding nodes.
 
-## 4. Execution Rules
-*   **Server 1**: Runs Nodes 1-5
-*   **Server 2**: Runs Nodes 6-10
-*   **Server 3**: Runs Nodes 11-15
-
-## 5. Running the Experiment
-
-### Step 1: Start Follower Nodes
-On **Server 1**, start nodes 1-5:
+### Machine 1 (Nodes 1-5)
 ```bash
 ./shard-server -id 1 -config cluster.json &
 ./shard-server -id 2 -config cluster.json &
@@ -44,7 +54,7 @@ On **Server 1**, start nodes 1-5:
 ./shard-server -id 5 -config cluster.json &
 ```
 
-On **Server 2**, start nodes 6-10:
+### Machine 2 (Nodes 6-10)
 ```bash
 ./shard-server -id 6 -config cluster.json &
 ./shard-server -id 7 -config cluster.json &
@@ -53,23 +63,26 @@ On **Server 2**, start nodes 6-10:
 ./shard-server -id 10 -config cluster.json &
 ```
 
-On **Server 3**, start nodes 11-14:
+### Machine 3 (Nodes 11-15)
 ```bash
 ./shard-server -id 11 -config cluster.json &
 ./shard-server -id 12 -config cluster.json &
 ./shard-server -id 13 -config cluster.json &
 ./shard-server -id 14 -config cluster.json &
+./shard-server -id 15 -config cluster.json &
 ```
 
-### Step 2: Start Leader & Load Generator
-On **Server 3**, start Node 15 with load generation enabled:
+> **Verify:** Check logs for `Leader elected` or `Follower` messages. If you see `connection refused`, ensure other machines are running!
+
+## 6. Run the Experiment
+Once all 15 nodes are running (even without a leader elected yet), run the experiment from **ONE** machine (e.g., Machine 1):
 
 ```bash
-./shard-server -id 15 -config cluster.json -load 1000
+./experiment -config cluster.json -load 1000
 ```
-*(This starts Node 15, waits for leader election, and then pumps 1000 transactions into the cluster)*
+This will send 1000 transactions to the cluster and measure performance.
 
-## 6. Monitoring & Results
-*   Watch the output of Node 15.
-*   It will report progress every 100 committed transactions.
-*   **Final Result**: Look for `Workload completed! Throughput: X TPS`.
+## Troubleshooting
+- **Bind Error:** `bind: cannot assign requested address` -> You are running a node on an incorrect machine. Check `cluster.json` IP for that ID.
+- **Connection Refused:** The target node is not running or firewall is blocking the port.
+- **No Route to Host:** Network isolation issue. Switch to a common Wi-Fi/Hotspot.
